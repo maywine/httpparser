@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <httpparser/request.h>
 #include <httpparser/httprequestparser.h>
+#include <httpparser/request.h>
 
 using namespace httpparser;
 
@@ -18,7 +18,7 @@ int main(int, char**)
 
     HttpRequestParser::ParseResult res = parser.parse(request, text, text + sizeof(text));
 
-    if( res == HttpRequestParser::ParsingCompleted )
+    if (res == HttpRequestParser::ParsingCompleted)
     {
         std::cout << request.inspect() << std::endl;
         return EXIT_SUCCESS;

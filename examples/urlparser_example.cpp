@@ -1,5 +1,5 @@
-#include <iostream>
 #include <httpparser/urlparser.h>
+#include <iostream>
 
 using namespace httpparser;
 
@@ -10,7 +10,7 @@ int main(int, char**)
     {
         const char url[] = "git+ssh://example.com/path/file";
 
-        if( parser.parse(url) )
+        if (parser.parse(url))
             std::cout << parser.scheme() << "://" << parser.hostname() << std::endl;
         else
             std::cerr << "Can't parse url: " << url << std::endl;
@@ -19,7 +19,7 @@ int main(int, char**)
     {
         const char url[] = "https://example.com/path/file";
 
-        if( parser.parse(url) )
+        if (parser.parse(url))
             std::cout << parser.scheme() << "://" << parser.hostname() << std::endl;
         else
             std::cerr << "Can't parse url: " << url << std::endl;

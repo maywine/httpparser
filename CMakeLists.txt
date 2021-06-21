@@ -14,7 +14,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
-option(HTTPARSER_BUILD_TESTS "Build httparser's unit tests" OFF)
+option(HTTPARSER_BUILD_TESTS "Build httparser's unit tests" ON)
+option(HTTPARSER_BUILD_EXAMPLES "Build httparser's examples" ON)
 option(HTTPARSER_INSTALL "Install httparser's header" ON)
 
 # default release
@@ -33,6 +34,10 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS
 enable_testing()
 add_subdirectory(tests)
 endif(HTTPARSER_BUILD_TESTS)
+
+if(HTTPARSER_BUILD_EXAMPLES)
+add_subdirectory(examples)
+endif(HTTPARSER_BUILD_EXAMPLES)
 
 if(HTTPARSER_INSTALL)
 include(GNUInstallDirs)
