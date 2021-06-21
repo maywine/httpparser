@@ -1,48 +1,41 @@
 PROJECT(httparser)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10...3.15)
 
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework system REQUIRED)
+if(NOT CMAKE_C_STANDARD)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+endif()
 
-SET(CMAKE_CXX_FLAGS "-Wextra -Wall -pthread" )
-SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g" )
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g" )
+if(NOT CMAKE_CXX_STANDARD)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
 
-SET(HEADERS
-    src/httpparser/httprequestparser.h
-    src/httpparser/httpresponseparser.h
-    src/httpparser/request.h
-    src/httpparser/response.h
-    src/httpparser/urlparser.h
-    tests/common.h
-)
+option(BUILD_SHARED_LIBS "Build shared library" ON)
+option(HTTPARSER_BUILD_TESTS "Build httparser's unit tests" OFF)
+option(HTTPARSER_INSTALL "Install httparser's header" ON)
 
-SET(SOURCES
-)
+# default release
+if(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE Release CACHE STRING
+        "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+        FORCE)
+endif()
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-ADD_EXECUTABLE(keepalive tests/keepalive.cpp  ${HEADERS})
-TARGET_LINK_LIBRARIES(keepalive ${Boost_LIBRARIES})
-ADD_TEST(keepalive keepalive)
+if(HTTPARSER_BUILD_TESTS)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS 
+            unit_test_framework 
+            system)
+enable_testing()
+add_subdirectory(tests)
+endif(HTTPARSER_BUILD_TESTS)
 
-ADD_EXECUTABLE(post tests/post.cpp ${HEADERS})
-TARGET_LINK_LIBRARIES(post ${Boost_LIBRARIES})
-ADD_TEST(post post)
-
-ADD_EXECUTABLE(response tests/response.cpp ${HEADERS})
-TARGET_LINK_LIBRARIES(response ${Boost_LIBRARIES})
-ADD_TEST(response response)
-
-ADD_EXECUTABLE(request tests/request.cpp  ${HEADERS})
-TARGET_LINK_LIBRARIES(request ${Boost_LIBRARIES})
-ADD_TEST(request response)
-
-ADD_EXECUTABLE(urlparser tests/urlparser.cpp ${HEADERS})
-TARGET_LINK_LIBRARIES(urlparser ${Boost_LIBRARIES})
-ADD_TEST(urlparser urlparser)
-
-ENABLE_TESTING()
-
-INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src/httpparser DESTINATION include)
+if(HTTPARSER_INSTALL)
+include(GNUInstallDirs)
+INSTALL(FILES "${CMAKE_SOURCE_DIR}/single_include/httpparser/httpparser.h"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/httpparser")
+endif(HTTPARSER_INSTALL)

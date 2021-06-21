@@ -3,8 +3,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <httpparser/request.h>
 #include <httpparser/httprequestparser.h>
+#include <httpparser/request.h>
 
 #include "common.h"
 
@@ -15,14 +15,14 @@ using httpparser::Request;
 
 struct PostFixture
 {
-    Request parse(const char *s, size_t size)
+    Request parse(const char* s, size_t size)
     {
         Request request;
         HttpRequestParser parser;
-        
+
         HttpRequestParser::ParseResult res = parser.parse(request, s, s + size);
-        
-        if( res != HttpRequestParser::ParsingCompleted )
+
+        if (res != HttpRequestParser::ParsingCompleted)
             return Request();
         else
             return request;
@@ -42,9 +42,10 @@ BOOST_FIXTURE_TEST_CASE(post_with_body, PostFixture)
                         "Host: 127.0.0.1\r\n"
                         "\r\n"
                         "arg1=test;arg1=%20%21;arg3=test";
-                       
+
     Request result = parse(text, sizeof(text));
-    Request should = RequestDsl()
+    Request should =
+        RequestDsl()
             .method("POST")
             .uri("/uri.cgi")
             .version(1, 1)
@@ -58,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(post_with_body, PostFixture)
             .header("Host", "127.0.0.1")
             .content("arg1=test;arg1=%20%21;arg3=test")
             .keepAlive(true);
-    
+
     BOOST_CHECK_EQUAL(result.inspect(), should.inspect());
 }
 
@@ -85,7 +86,8 @@ BOOST_FIXTURE_TEST_CASE(post_chunked, PostFixture)
                         "0\r\n\r\n";
 
     Request result = parse(text, sizeof(text));
-    Request should = RequestDsl()
+    Request should =
+        RequestDsl()
             .method("POST")
             .uri("/uri.cgi")
             .version(1, 1)
@@ -127,7 +129,8 @@ BOOST_FIXTURE_TEST_CASE(post_chunked_extension, PostFixture)
                         "\r\n";
 
     Request result = parse(text, sizeof(text));
-    Request should = RequestDsl()
+    Request should =
+        RequestDsl()
             .method("POST")
             .uri("/uri.cgi")
             .version(1, 1)

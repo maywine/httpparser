@@ -11,7 +11,7 @@ using httpparser::UrlParser;
 
 BOOST_AUTO_TEST_CASE(http_url)
 {
-    const char *text = "http://www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
+    const char* text = "http://www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(http_url)
 
 BOOST_AUTO_TEST_CASE(http_only_hostname)
 {
-    const char *text = "http://www.example.com";
+    const char* text = "http://www.example.com";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(http_only_hostname)
 
 BOOST_AUTO_TEST_CASE(http_url_with_username)
 {
-    const char *text = "http://username@www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
+    const char* text = "http://username@www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(http_url_with_username)
 
 BOOST_AUTO_TEST_CASE(http_url_with_username_and_password)
 {
-    const char *text = "http://username:passwd@www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
+    const char* text = "http://username:passwd@www.example.com/dir/subdir?param=1&param=2;param%20=%20#fragment";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(http_url_with_username_and_password)
 
 BOOST_AUTO_TEST_CASE(http_url_with_port)
 {
-    const char *text = "http://www.example.com:8080/dir/subdir?param=1&param=2;param%20=%20#fragment";
+    const char* text = "http://www.example.com:8080/dir/subdir?param=1&param=2;param%20=%20#fragment";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(http_url_with_port)
 
 BOOST_AUTO_TEST_CASE(http_url_with_username_and_port)
 {
-    const char *text = "http://username:passwd@www.example.com:8080/dir/subdir?param=1&param=2;param%20=%20#fragment";
+    const char* text = "http://username:passwd@www.example.com:8080/dir/subdir?param=1&param=2;param%20=%20#fragment";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(http_url_with_username_and_port)
 
 BOOST_AUTO_TEST_CASE(ftp_url)
 {
-    const char *text = "ftp://username:passwd@ftp.example.com/dir/filename.ext";
+    const char* text = "ftp://username:passwd@ftp.example.com/dir/filename.ext";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(ftp_url)
 
 BOOST_AUTO_TEST_CASE(email_url)
 {
-    const char *text = "mailto:username@example.com";
+    const char* text = "mailto:username@example.com";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(email_url)
 
 BOOST_AUTO_TEST_CASE(svn_over_ssh)
 {
-    const char *text = "svn+ssh://hostname-01.org/path/to/file";
+    const char* text = "svn+ssh://hostname-01.org/path/to/file";
     UrlParser parser(text);
 
     BOOST_CHECK_EQUAL(parser.isValid(), true);

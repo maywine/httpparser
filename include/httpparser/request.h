@@ -3,55 +3,52 @@
  * License: MIT
  */
 
-#ifndef HTTPPARSER_RESPONSE_H
-#define HTTPPARSER_RESPONSE_H
+#ifndef HTTPPARSER_REQUEST_H
+#define HTTPPARSER_REQUEST_H
 
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 namespace httpparser
 {
 
-struct Response {
-    Response()
-        : versionMajor(0), versionMinor(0), keepAlive(false), statusCode(0)
-    {}
-    
+struct Request
+{
+    Request() : versionMajor(0), versionMinor(0), keepAlive(false) {}
+
     struct HeaderItem
     {
         std::string name;
         std::string value;
     };
 
+    std::string method;
+    std::string uri;
     int versionMajor;
     int versionMinor;
     std::vector<HeaderItem> headers;
     std::vector<char> content;
     bool keepAlive;
-    
-    unsigned int statusCode;
-    std::string status;
 
     std::string inspect() const
     {
         std::stringstream stream;
-        stream << "HTTP/" << versionMajor << "." << versionMinor
-               << " " << statusCode << " " << status << "\n";
+        stream << method << " " << uri << " HTTP/" << versionMajor << "." << versionMinor << "\n";
 
-        for(std::vector<Response::HeaderItem>::const_iterator it = headers.begin();
-            it != headers.end(); ++it)
+        for (std::vector<Request::HeaderItem>::const_iterator it = headers.begin(); it != headers.end(); ++it)
         {
             stream << it->name << ": " << it->value << "\n";
         }
 
         std::string data(content.begin(), content.end());
         stream << data << "\n";
+        stream << "+ keep-alive: " << keepAlive << "\n";
+        ;
         return stream.str();
     }
 };
 
-} // namespace httpparser
+}  // namespace httpparser
 
-#endif // HTTPPARSER_RESPONSE_H
-
+#endif  // HTTPPARSER_REQUEST_H

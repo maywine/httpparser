@@ -6,10 +6,10 @@
 #ifndef HTTPPARSER_URLPARSER_H
 #define HTTPPARSER_URLPARSER_H
 
-#include <string>
-#include <stdlib.h>
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string>
 
 namespace httpparser
 {
@@ -17,18 +17,11 @@ namespace httpparser
 class UrlParser
 {
 public:
-    UrlParser()
-        : valid(false)
-    {
-    }
+    UrlParser() : valid(false) {}
 
-    explicit UrlParser(const std::string &url)
-        : valid(true)
-    {
-        parse(url);
-    }
+    explicit UrlParser(const std::string& url) : valid(true) { parse(url); }
 
-    bool parse(const std::string &str)
+    bool parse(const std::string& str)
     {
         url = Url();
         parse_(str);
@@ -36,69 +29,66 @@ public:
         return isValid();
     }
 
-    bool isValid() const
-    {
-        return valid;
-    }
+    bool isValid() const { return valid; }
 
     std::string scheme() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.scheme;
     }
 
     std::string username() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.username;
     }
 
     std::string password() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.password;
     }
 
     std::string hostname() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.hostname;
     }
 
     std::string port() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.port;
     }
 
     std::string path() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.path;
     }
 
     std::string query() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.query;
     }
 
     std::string fragment() const
     {
-        assert( isValid() );
+        assert(isValid());
         return url.fragment;
     }
 
     uint16_t httpPort() const
     {
-        const uint16_t defaultHttpPort = 80;
+        const uint16_t defaultHttpPort  = 80;
         const uint16_t defaultHttpsPort = 443;
 
-        assert( isValid() );
+        assert(isValid());
 
-        if( url.port.empty() )
+        if (url.port.empty())
         {
-            if( scheme() == "https" )
+            if (scheme() == "https")
                 return defaultHttpsPort;
             else
                 return defaultHttpPort;
@@ -112,10 +102,10 @@ public:
 private:
     bool isUnreserved(char ch) const
     {
-        if( isalnum(ch) )
+        if (isalnum(ch))
             return true;
 
-        switch(ch)
+        switch (ch)
         {
         case '-':
         case '.':
@@ -127,9 +117,10 @@ private:
         return false;
     }
 
-    void parse_(const std::string &str)
+    void parse_(const std::string& str)
     {
-        enum {
+        enum
+        {
             Scheme,
             SlashAfterScheme1,
             SlashAfterScheme2,
@@ -147,73 +138,73 @@ private:
         std::string usernameOrHostname;
         std::string portOrPassword;
 
-        valid = true;
-        url.path = "/";
+        valid           = true;
+        url.path        = "/";
         url.integerPort = 0;
 
-        for(size_t i = 0; i < str.size() && valid; ++i)
+        for (size_t i = 0; i < str.size() && valid; ++i)
         {
             char ch = str[i];
 
-            switch(state)
+            switch (state)
             {
             case Scheme:
-                if( isalnum(ch) || ch == '+' || ch == '-' || ch == '.')
+                if (isalnum(ch) || ch == '+' || ch == '-' || ch == '.')
                 {
                     url.scheme += ch;
                 }
-                else if( ch == ':' )
+                else if (ch == ':')
                 {
                     state = SlashAfterScheme1;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case SlashAfterScheme1:
-                if( ch == '/' )
+                if (ch == '/')
                 {
                     state = SlashAfterScheme2;
                 }
-                else if( isalnum(ch) )
+                else if (isalnum(ch))
                 {
                     usernameOrHostname = ch;
-                    state = UsernameOrHostname;
+                    state              = UsernameOrHostname;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case SlashAfterScheme2:
-                if( ch == '/' )
+                if (ch == '/')
                 {
                     state = UsernameOrHostname;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case UsernameOrHostname:
-                if( isUnreserved(ch) || ch == '%' )
+                if (isUnreserved(ch) || ch == '%')
                 {
                     usernameOrHostname += ch;
                 }
-                else if( ch == ':' )
+                else if (ch == ':')
                 {
                     state = PortOrPassword;
                 }
-                else if( ch == '@' )
+                else if (ch == '@')
                 {
                     state = Hostname;
                     std::swap(url.username, usernameOrHostname);
                 }
-                else if( ch == '/' )
+                else if (ch == '/')
                 {
                     state = Path;
                     std::swap(url.hostname, usernameOrHostname);
@@ -221,62 +212,62 @@ private:
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case Password:
-                if( isalnum(ch) || ch == '%' )
+                if (isalnum(ch) || ch == '%')
                 {
                     url.password += ch;
                 }
-                else if( ch == '@' )
+                else if (ch == '@')
                 {
                     state = Hostname;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case Hostname:
-                if( ch == '[' && url.hostname.empty() )
+                if (ch == '[' && url.hostname.empty())
                 {
                     state = IPV6Hostname;
                 }
-                else if(isUnreserved(ch) || ch == '%')
+                else if (isUnreserved(ch) || ch == '%')
                 {
                     url.hostname += ch;
                 }
-                else if(ch == ':')
+                else if (ch == ':')
                 {
                     state = Port;
                 }
-                else if(ch == '/')
+                else if (ch == '/')
                 {
                     state = Path;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case IPV6Hostname:
-                abort(); // TODO
+                abort();  // TODO
             case PortOrPassword:
-                if( isdigit(ch) )
+                if (isdigit(ch))
                 {
                     portOrPassword += ch;
                 }
-                else if( ch == '/' )
+                else if (ch == '/')
                 {
                     std::swap(url.hostname, usernameOrHostname);
                     std::swap(url.port, portOrPassword);
                     url.integerPort = atoi(url.port.c_str());
-                    state = Path;
+                    state           = Path;
                 }
-                else if( isalnum(ch) || ch == '%' )
+                else if (isalnum(ch) || ch == '%')
                 {
                     std::swap(url.username, usernameOrHostname);
                     std::swap(url.password, portOrPassword);
@@ -286,32 +277,32 @@ private:
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case Port:
-                if( isdigit(ch) )
+                if (isdigit(ch))
                 {
                     portOrPassword += ch;
                 }
-                else if(ch == '/')
+                else if (ch == '/')
                 {
                     std::swap(url.port, portOrPassword);
                     url.integerPort = atoi(url.port.c_str());
-                    state = Path;
+                    state           = Path;
                 }
                 else
                 {
                     valid = false;
-                    url = Url();
+                    url   = Url();
                 }
                 break;
             case Path:
-                if( ch == '#')
+                if (ch == '#')
                 {
                     state = Fragment;
                 }
-                else if( ch == '?' )
+                else if (ch == '?')
                 {
                     state = Query;
                 }
@@ -321,11 +312,11 @@ private:
                 }
                 break;
             case Query:
-                if( ch == '#')
+                if (ch == '#')
                 {
                     state = Fragment;
                 }
-                else if( ch == '?' )
+                else if (ch == '?')
                 {
                     state = Query;
                 }
@@ -342,17 +333,15 @@ private:
 
         assert(portOrPassword.empty());
 
-        if( !usernameOrHostname.empty() )
+        if (!usernameOrHostname.empty())
             url.hostname = usernameOrHostname;
     }
-
 
     bool valid;
 
     struct Url
     {
-        Url() : integerPort(0)
-        {}
+        Url() : integerPort(0) {}
 
         std::string scheme;
         std::string username;
@@ -366,6 +355,6 @@ private:
     } url;
 };
 
-} // namespace httpparser
+}  // namespace httpparser
 
-#endif // HTTPPARSER_URLPARSER_H
+#endif  // HTTPPARSER_URLPARSER_H

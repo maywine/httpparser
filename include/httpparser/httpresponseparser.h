@@ -3,207 +3,201 @@
  * License: MIT
  */
 
-#ifndef HTTPPARSER_REQUESTPARSER_H
-#define HTTPPARSER_REQUESTPARSER_H
+#ifndef HTTPPARSER_RESPONSEPARSER_H
+#define HTTPPARSER_RESPONSEPARSER_H
 
 #include <algorithm>
 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "request.h"
+#include "response.h"
 
 namespace httpparser
 {
 
-class HttpRequestParser
+class HttpResponseParser
 {
 public:
-    HttpRequestParser()
-        : state(RequestMethodStart), contentSize(0),
-          chunkSize(0), chunked(false)
+    HttpResponseParser() : state(ResponseStatusStart), contentSize(0), chunkSize(0), chunked(false) {}
 
+    enum ParseResult
     {
-    }
-
-    enum ParseResult {
         ParsingCompleted,
         ParsingIncompleted,
         ParsingError
     };
 
-    ParseResult parse(Request &req, const char *begin, const char *end)
-    {
-        return consume(req, begin, end);
-    }
+    ParseResult parse(Response& resp, const char* begin, const char* end) { return consume(resp, begin, end); }
 
 private:
-    static bool checkIfConnection(const Request::HeaderItem &item)
+    static bool checkIfConnection(const Response::HeaderItem& item)
     {
         return strcasecmp(item.name.c_str(), "Connection") == 0;
     }
 
-    ParseResult consume(Request &req, const char *begin, const char *end)
+    ParseResult consume(Response& resp, const char* begin, const char* end)
     {
-        while( begin != end )
+        while (begin != end)
         {
             char input = *begin++;
 
             switch (state)
             {
-            case RequestMethodStart:
-                if( !isChar(input) || isControl(input) || isSpecial(input) )
+            case ResponseStatusStart:
+                if (input != 'H')
                 {
                     return ParsingError;
                 }
                 else
                 {
-                    state = RequestMethod;
-                    req.method.push_back(input);
+                    state = ResponseHttpVersion_ht;
                 }
                 break;
-            case RequestMethod:
-                if( input == ' ' )
+            case ResponseHttpVersion_ht:
+                if (input == 'T')
                 {
-                    state = RequestUriStart;
-                }
-                else if( !isChar(input) || isControl(input) || isSpecial(input) )
-                {
-                    return ParsingError;
-                }
-                else
-                {
-                    req.method.push_back(input);
-                }
-                break;
-            case RequestUriStart:
-                if( isControl(input) )
-                {
-                    return ParsingError;
-                }
-                else
-                {
-                    state = RequestUri;
-                    req.uri.push_back(input);
-                }
-                break;
-            case RequestUri:
-                if( input == ' ' )
-                {
-                    state = RequestHttpVersion_h;
-                }
-                else if (input == '\r')
-                {
-                    req.versionMajor = 0;
-                    req.versionMinor = 9;
-
-                    return ParsingCompleted;
-                }
-                else if( isControl(input) )
-                {
-                    return ParsingError;
-                }
-                else
-                {
-                    req.uri.push_back(input);
-                }
-                break;
-            case RequestHttpVersion_h:
-                if( input == 'H' )
-                {
-                    state = RequestHttpVersion_ht;
+                    state = ResponseHttpVersion_htt;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_ht:
-                if( input == 'T' )
+            case ResponseHttpVersion_htt:
+                if (input == 'T')
                 {
-                    state = RequestHttpVersion_htt;
+                    state = ResponseHttpVersion_http;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_htt:
-                if( input == 'T' )
+            case ResponseHttpVersion_http:
+                if (input == 'P')
                 {
-                    state = RequestHttpVersion_http;
+                    state = ResponseHttpVersion_slash;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_http:
-                if( input == 'P' )
+            case ResponseHttpVersion_slash:
+                if (input == '/')
                 {
-                    state = RequestHttpVersion_slash;
+                    resp.versionMajor = 0;
+                    resp.versionMinor = 0;
+                    state             = ResponseHttpVersion_majorStart;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_slash:
-                if( input == '/' )
+            case ResponseHttpVersion_majorStart:
+                if (isDigit(input))
                 {
-                    req.versionMajor = 0;
-                    req.versionMinor = 0;
-                    state = RequestHttpVersion_majorStart;
+                    resp.versionMajor = input - '0';
+                    state             = ResponseHttpVersion_major;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_majorStart:
-                if( isDigit(input) )
+            case ResponseHttpVersion_major:
+                if (input == '.')
                 {
-                    req.versionMajor = input - '0';
-                    state = RequestHttpVersion_major;
-                }
-                else
-                {
-                    return ParsingError;
-                }
-                break;
-            case RequestHttpVersion_major:
-                if( input == '.' )
-                {
-                    state = RequestHttpVersion_minorStart;
+                    state = ResponseHttpVersion_minorStart;
                 }
                 else if (isDigit(input))
                 {
-                    req.versionMajor = req.versionMajor * 10 + input - '0';
+                    resp.versionMajor = resp.versionMajor * 10 + input - '0';
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_minorStart:
-                if( isDigit(input) )
+            case ResponseHttpVersion_minorStart:
+                if (isDigit(input))
                 {
-                    req.versionMinor = input - '0';
-                    state = RequestHttpVersion_minor;
+                    resp.versionMinor = input - '0';
+                    state             = ResponseHttpVersion_minor;
                 }
                 else
                 {
                     return ParsingError;
                 }
                 break;
-            case RequestHttpVersion_minor:
-                if( input == '\r' )
+            case ResponseHttpVersion_minor:
+                if (input == ' ')
+                {
+                    state           = ResponseHttpVersion_statusCodeStart;
+                    resp.statusCode = 0;
+                }
+                else if (isDigit(input))
+                {
+                    resp.versionMinor = resp.versionMinor * 10 + input - '0';
+                }
+                else
+                {
+                    return ParsingError;
+                }
+                break;
+            case ResponseHttpVersion_statusCodeStart:
+                if (isDigit(input))
+                {
+                    resp.statusCode = input - '0';
+                    state           = ResponseHttpVersion_statusCode;
+                }
+                else
+                {
+                    return ParsingError;
+                }
+                break;
+            case ResponseHttpVersion_statusCode:
+                if (isDigit(input))
+                {
+                    resp.statusCode = resp.statusCode * 10 + input - '0';
+                }
+                else
+                {
+                    if (resp.statusCode < 100 || resp.statusCode > 999)
+                    {
+                        return ParsingError;
+                    }
+                    else if (input == ' ')
+                    {
+                        state = ResponseHttpVersion_statusTextStart;
+                    }
+                    else
+                    {
+                        return ParsingError;
+                    }
+                }
+                break;
+            case ResponseHttpVersion_statusTextStart:
+                if (isChar(input))
+                {
+                    resp.status += input;
+                    state = ResponseHttpVersion_statusText;
+                }
+                else
+                {
+                    return ParsingError;
+                }
+                break;
+            case ResponseHttpVersion_statusText:
+                if (input == '\r')
                 {
                     state = ResponseHttpVersion_newLine;
                 }
-                else if( isDigit(input) )
+                else if (isChar(input))
                 {
-                    req.versionMinor = req.versionMinor * 10 + input - '0';
+                    resp.status += input;
                 }
                 else
                 {
@@ -211,7 +205,7 @@ private:
                 }
                 break;
             case ResponseHttpVersion_newLine:
-                if( input == '\n' )
+                if (input == '\n')
                 {
                     state = HeaderLineStart;
                 }
@@ -221,61 +215,61 @@ private:
                 }
                 break;
             case HeaderLineStart:
-                if( input == '\r' )
+                if (input == '\r')
                 {
                     state = ExpectingNewline_3;
                 }
-                else if( !req.headers.empty() && (input == ' ' || input == '\t') )
+                else if (!resp.headers.empty() && (input == ' ' || input == '\t'))
                 {
                     state = HeaderLws;
                 }
-                else if( !isChar(input) || isControl(input) || isSpecial(input) )
+                else if (!isChar(input) || isControl(input) || isSpecial(input))
                 {
                     return ParsingError;
                 }
                 else
                 {
-                    req.headers.push_back(Request::HeaderItem());
-                    req.headers.back().name.reserve(16);
-                    req.headers.back().value.reserve(16);
-                    req.headers.back().name.push_back(input);
+                    resp.headers.push_back(Response::HeaderItem());
+                    resp.headers.back().name.reserve(16);
+                    resp.headers.back().value.reserve(16);
+                    resp.headers.back().name.push_back(input);
                     state = HeaderName;
                 }
                 break;
             case HeaderLws:
-                if( input == '\r' )
+                if (input == '\r')
                 {
                     state = ExpectingNewline_2;
                 }
-                else if( input == ' ' || input == '\t' )
+                else if (input == ' ' || input == '\t')
                 {
                 }
-                else if( isControl(input) )
+                else if (isControl(input))
                 {
                     return ParsingError;
                 }
                 else
                 {
                     state = HeaderValue;
-                    req.headers.back().value.push_back(input);
+                    resp.headers.back().value.push_back(input);
                 }
                 break;
             case HeaderName:
-                if( input == ':' )
+                if (input == ':')
                 {
                     state = SpaceBeforeHeaderValue;
                 }
-                else if( !isChar(input) || isControl(input) || isSpecial(input) )
+                else if (!isChar(input) || isControl(input) || isSpecial(input))
                 {
                     return ParsingError;
                 }
                 else
                 {
-                    req.headers.back().name.push_back(input);
+                    resp.headers.back().name.push_back(input);
                 }
                 break;
             case SpaceBeforeHeaderValue:
-                if( input == ' ' )
+                if (input == ' ')
                 {
                     state = HeaderValue;
                 }
@@ -285,36 +279,33 @@ private:
                 }
                 break;
             case HeaderValue:
-                if( input == '\r' )
+                if (input == '\r')
                 {
-                    if( req.method == "POST" || req.method == "PUT" )
-                    {
-                        Request::HeaderItem &h = req.headers.back();
+                    Response::HeaderItem& h = resp.headers.back();
 
-                        if( strcasecmp(h.name.c_str(), "Content-Length") == 0 )
-                        {
-                            contentSize = atoi(h.value.c_str());
-                            req.content.reserve( contentSize );
-                        }
-                        else if( strcasecmp(h.name.c_str(), "Transfer-Encoding") == 0 )
-                        {
-                            if(strcasecmp(h.value.c_str(), "chunked") == 0)
-                                chunked = true;
-                        }
+                    if (strcasecmp(h.name.c_str(), "Content-Length") == 0)
+                    {
+                        contentSize = atoi(h.value.c_str());
+                        resp.content.reserve(contentSize);
+                    }
+                    else if (strcasecmp(h.name.c_str(), "Transfer-Encoding") == 0)
+                    {
+                        if (strcasecmp(h.value.c_str(), "chunked") == 0)
+                            chunked = true;
                     }
                     state = ExpectingNewline_2;
                 }
-                else if( isControl(input) )
+                else if (isControl(input))
                 {
                     return ParsingError;
                 }
                 else
                 {
-                    req.headers.back().value.push_back(input);
+                    resp.headers.back().value.push_back(input);
                 }
                 break;
             case ExpectingNewline_2:
-                if( input == '\n' )
+                if (input == '\n')
                 {
                     state = HeaderLineStart;
                 }
@@ -323,39 +314,40 @@ private:
                     return ParsingError;
                 }
                 break;
-            case ExpectingNewline_3: {
-                std::vector<Request::HeaderItem>::iterator it = std::find_if(req.headers.begin(),
-                                                                    req.headers.end(),
-                                                                    checkIfConnection);
+            case ExpectingNewline_3:
+            {
+                std::vector<Response::HeaderItem>::iterator it =
+                    std::find_if(resp.headers.begin(), resp.headers.end(), checkIfConnection);
 
-                if( it != req.headers.end() )
+                if (it != resp.headers.end())
                 {
-                    if( strcasecmp(it->value.c_str(), "Keep-Alive") == 0 )
+                    if (strcasecmp(it->value.c_str(), "Keep-Alive") == 0)
                     {
-                        req.keepAlive = true;
+                        resp.keepAlive = true;
                     }
                     else  // == Close
                     {
-                        req.keepAlive = false;
+                        resp.keepAlive = false;
                     }
                 }
                 else
                 {
-                    if( req.versionMajor > 1 || (req.versionMajor == 1 && req.versionMinor == 1) )
-                        req.keepAlive = true;
+                    if (resp.versionMajor > 1 || (resp.versionMajor == 1 && resp.versionMinor == 1))
+                        resp.keepAlive = true;
                 }
 
-                if( chunked )
+                if (chunked)
                 {
                     state = ChunkSize;
                 }
-                else if( contentSize == 0 )
+                else if (contentSize == 0)
                 {
-                    if( input == '\n')
+                    if (input == '\n')
                         return ParsingCompleted;
                     else
                         return ParsingError;
                 }
+
                 else
                 {
                     state = Post;
@@ -364,23 +356,23 @@ private:
             }
             case Post:
                 --contentSize;
-                req.content.push_back( input );
+                resp.content.push_back(input);
 
-                if( contentSize == 0 )
+                if (contentSize == 0)
                 {
                     return ParsingCompleted;
                 }
                 break;
             case ChunkSize:
-                if( isalnum(input) )
+                if (isalnum(input))
                 {
                     chunkSizeStr.push_back(input);
                 }
-                else if( input == ';' )
+                else if (input == ';')
                 {
                     state = ChunkExtensionName;
                 }
-                else if( input == '\r' )
+                else if (input == '\r')
                 {
                     state = ChunkSizeNewLine;
                 }
@@ -390,15 +382,15 @@ private:
                 }
                 break;
             case ChunkExtensionName:
-                if( isalnum(input) || input == ' ' )
+                if (isalnum(input) || input == ' ')
                 {
                     // skip
                 }
-                else if( input == '=' )
+                else if (input == '=')
                 {
                     state = ChunkExtensionValue;
                 }
-                else if( input == '\r' )
+                else if (input == '\r')
                 {
                     state = ChunkSizeNewLine;
                 }
@@ -408,11 +400,11 @@ private:
                 }
                 break;
             case ChunkExtensionValue:
-                if( isalnum(input) || input == ' ' )
+                if (isalnum(input) || input == ' ')
                 {
                     // skip
                 }
-                else if( input == '\r' )
+                else if (input == '\r')
                 {
                     state = ChunkSizeNewLine;
                 }
@@ -422,13 +414,13 @@ private:
                 }
                 break;
             case ChunkSizeNewLine:
-                if( input == '\n' )
+                if (input == '\n')
                 {
                     chunkSize = strtol(chunkSizeStr.c_str(), NULL, 16);
                     chunkSizeStr.clear();
-                    req.content.reserve(req.content.size() + chunkSize);
+                    resp.content.reserve(resp.content.size() + chunkSize);
 
-                    if( chunkSize == 0 )
+                    if (chunkSize == 0)
                         state = ChunkSizeNewLine_2;
                     else
                         state = ChunkData;
@@ -439,11 +431,11 @@ private:
                 }
                 break;
             case ChunkSizeNewLine_2:
-                if( input == '\r' )
+                if (input == '\r')
                 {
                     state = ChunkSizeNewLine_3;
                 }
-                else if( isalpha(input) )
+                else if (isalpha(input))
                 {
                     state = ChunkTrailerName;
                 }
@@ -453,7 +445,7 @@ private:
                 }
                 break;
             case ChunkSizeNewLine_3:
-                if( input == '\n' )
+                if (input == '\n')
                 {
                     return ParsingCompleted;
                 }
@@ -463,11 +455,11 @@ private:
                 }
                 break;
             case ChunkTrailerName:
-                if( isalnum(input) )
+                if (isalnum(input))
                 {
                     // skip
                 }
-                else if( input == ':' )
+                else if (input == ':')
                 {
                     state = ChunkTrailerValue;
                 }
@@ -477,11 +469,11 @@ private:
                 }
                 break;
             case ChunkTrailerValue:
-                if( isalnum(input) || input == ' ' )
+                if (isalnum(input) || input == ' ')
                 {
                     // skip
                 }
-                else if( input == '\r' )
+                else if (input == '\r')
                 {
                     state = ChunkSizeNewLine;
                 }
@@ -491,15 +483,15 @@ private:
                 }
                 break;
             case ChunkData:
-                req.content.push_back(input);
+                resp.content.push_back(input);
 
-                if( --chunkSize == 0 )
+                if (--chunkSize == 0)
                 {
                     state = ChunkDataNewLine_1;
                 }
                 break;
             case ChunkDataNewLine_1:
-                if( input == '\r' )
+                if (input == '\r')
                 {
                     state = ChunkDataNewLine_2;
                 }
@@ -509,7 +501,7 @@ private:
                 }
                 break;
             case ChunkDataNewLine_2:
-                if( input == '\n' )
+                if (input == '\n')
                 {
                     state = ChunkSize;
                 }
@@ -527,26 +519,35 @@ private:
     }
 
     // Check if a byte is an HTTP character.
-    inline bool isChar(int c)
-    {
-        return c >= 0 && c <= 127;
-    }
+    inline bool isChar(int c) { return c >= 0 && c <= 127; }
 
     // Check if a byte is an HTTP control character.
-    inline bool isControl(int c)
-    {
-        return (c >= 0 && c <= 31) || (c == 127);
-    }
+    inline bool isControl(int c) { return (c >= 0 && c <= 31) || (c == 127); }
 
     // Check if a byte is defined as an HTTP special character.
     inline bool isSpecial(int c)
     {
         switch (c)
         {
-        case '(': case ')': case '<': case '>': case '@':
-        case ',': case ';': case ':': case '\\': case '"':
-        case '/': case '[': case ']': case '?': case '=':
-        case '{': case '}': case ' ': case '\t':
+        case '(':
+        case ')':
+        case '<':
+        case '>':
+        case '@':
+        case ',':
+        case ';':
+        case ':':
+        case '\\':
+        case '"':
+        case '/':
+        case '[':
+        case ']':
+        case '?':
+        case '=':
+        case '{':
+        case '}':
+        case ' ':
+        case '\t':
             return true;
         default:
             return false;
@@ -554,28 +555,11 @@ private:
     }
 
     // Check if a byte is a digit.
-    inline bool isDigit(int c)
-    {
-        return c >= '0' && c <= '9';
-    }
+    inline bool isDigit(int c) { return c >= '0' && c <= '9'; }
 
     // The current state of the parser.
     enum State
     {
-        RequestMethodStart,
-        RequestMethod,
-        RequestUriStart,
-        RequestUri,
-        RequestHttpVersion_h,
-        RequestHttpVersion_ht,
-        RequestHttpVersion_htt,
-        RequestHttpVersion_http,
-        RequestHttpVersion_slash,
-        RequestHttpVersion_majorStart,
-        RequestHttpVersion_major,
-        RequestHttpVersion_minorStart,
-        RequestHttpVersion_minor,
-
         ResponseStatusStart,
         ResponseHttpVersion_ht,
         ResponseHttpVersion_htt,
@@ -585,12 +569,11 @@ private:
         ResponseHttpVersion_major,
         ResponseHttpVersion_minorStart,
         ResponseHttpVersion_minor,
-        ResponseHttpVersion_spaceAfterVersion,
         ResponseHttpVersion_statusCodeStart,
-        ResponseHttpVersion_spaceAfterStatusCode,
+        ResponseHttpVersion_statusCode,
         ResponseHttpVersion_statusTextStart,
+        ResponseHttpVersion_statusText,
         ResponseHttpVersion_newLine,
-
         HeaderLineStart,
         HeaderLws,
         HeaderName,
@@ -598,7 +581,6 @@ private:
         HeaderValue,
         ExpectingNewline_2,
         ExpectingNewline_3,
-
         Post,
         ChunkSize,
         ChunkExtensionName,
@@ -620,6 +602,6 @@ private:
     bool chunked;
 };
 
-} // namespace httpparser
+}  // namespace httpparser
 
-#endif // LIBAHTTP_REQUESTPARSER_H
+#endif  // HTTPPARSER_RESPONSEPARSER_H
